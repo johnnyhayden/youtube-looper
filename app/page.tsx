@@ -1,65 +1,272 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { PlayerProvider, usePlayer } from '@/lib/store';
+import { extractVideoId, SPEED_STEP } from '@/lib/youtube';
+import { useMidiBridge, MidiStatus } from '@/lib/midi-client';
+import YouTubePlayer from '@/components/YouTubePlayer';
+import Timeline from '@/components/Timeline';
+import LoopControls from '@/components/LoopControls';
+import SpeedControl from '@/components/SpeedControl';
+import PlaybackControls from '@/components/PlaybackControls';
+import PresetManager from '@/components/PresetManager';
+import KeyboardShortcuts, { KeyboardShortcutsHelp } from '@/components/KeyboardShortcuts';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import type { Preset } from '@/lib/types';
+
+function VideoLooper() {
+  const {
+    state,
+    setVideoId,
+    togglePlayPause,
+    toggleLoop,
+    adjustSpeed,
+    setSpeed,
+    loadPreset,
+  } = usePlayer();
+
+  const [url, setUrl] = useState('');
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const currentPresetIndex = useRef(0);
+
+  // Load presets when video changes
+  useEffect(() => {
+    if (state.videoId) {
+      fetch(`/api/presets?videoId=${state.videoId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setPresets(data.presets || []);
+          currentPresetIndex.current = 0;
+        })
+        .catch(console.error);
+    }
+  }, [state.videoId]);
+
+  // MIDI handlers
+  const midiHandlers = {
+    onPlayPause: togglePlayPause,
+    onToggleLoop: toggleLoop,
+    onNextPreset: useCallback(() => {
+      if (presets.length > 0) {
+        currentPresetIndex.current = (currentPresetIndex.current + 1) % presets.length;
+        loadPreset(presets[currentPresetIndex.current]);
+      }
+    }, [presets, loadPreset]),
+    onPrevPreset: useCallback(() => {
+      if (presets.length > 0) {
+        currentPresetIndex.current =
+          (currentPresetIndex.current - 1 + presets.length) % presets.length;
+        loadPreset(presets[currentPresetIndex.current]);
+      }
+    }, [presets, loadPreset]),
+    onSpeedDown: useCallback(() => adjustSpeed(-SPEED_STEP), [adjustSpeed]),
+    onSpeedUp: useCallback(() => adjustSpeed(SPEED_STEP), [adjustSpeed]),
+    onSetSpeed: setSpeed,
+  };
+
+  const { isConnected: midiConnected } = useMidiBridge(midiHandlers);
+
+  const handleLoadVideo = () => {
+    const videoId = extractVideoId(url);
+    if (videoId) {
+      setVideoId(videoId);
+    }
+  };
+
+  const handleSavePreset = async (preset: Omit<Preset, 'id'>) => {
+    if (!state.videoId) return;
+
+    try {
+      const res = await fetch('/api/presets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          videoId: state.videoId,
+          preset,
+        }),
+      });
+      const data = await res.json();
+      if (data.preset) {
+        setPresets((prev) => [...prev, data.preset]);
+      }
+    } catch (err) {
+      console.error('Error saving preset:', err);
+    }
+  };
+
+  const handleDeletePreset = async (presetId: string) => {
+    if (!state.videoId) return;
+
+    try {
+      await fetch(`/api/presets?videoId=${state.videoId}&presetId=${presetId}`, {
+        method: 'DELETE',
+      });
+      setPresets((prev) => prev.filter((p) => p.id !== presetId));
+    } catch (err) {
+      console.error('Error deleting preset:', err);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Keyboard shortcuts handler */}
+      <KeyboardShortcuts
+        presets={presets}
+        onSavePreset={() => setSaveDialogOpen(true)}
+      />
+
+      {/* Header */}
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold tracking-tight">
+              <span className="text-primary">YouTube</span> Looper
+            </h1>
+            <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded">
+              Guitar Practice
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            <MidiStatus isConnected={midiConnected} />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowHelp(!showHelp)}
+            >
+              {showHelp ? 'Hide' : 'Show'} Shortcuts
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 py-6">
+        {/* URL input */}
+        <div className="flex gap-2 mb-6">
+          <Input
+            type="text"
+            placeholder="Paste YouTube URL or video ID..."
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleLoadVideo()}
+            className="flex-1 h-12 text-lg"
+          />
+          <Button onClick={handleLoadVideo} size="lg" className="h-12 px-8">
+            Load Video
+          </Button>
+        </div>
+
+        {/* Keyboard shortcuts help */}
+        {showHelp && (
+          <div className="mb-6 p-4 bg-card rounded-lg border border-border">
+            <h3 className="font-semibold mb-3">Keyboard Shortcuts</h3>
+            <KeyboardShortcutsHelp />
+          </div>
+        )}
+
+        {/* Main content */}
+        {state.videoId ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Video and timeline - takes 2 columns on large screens */}
+            <div className="lg:col-span-2 space-y-4">
+              {/* Video player */}
+              <YouTubePlayer videoId={state.videoId} />
+
+              {/* Timeline */}
+              <div className="bg-card p-4 rounded-lg border border-border">
+                <Timeline />
+              </div>
+
+              {/* Playback controls */}
+              <div className="bg-card p-4 rounded-lg border border-border">
+                <PlaybackControls />
+              </div>
+            </div>
+
+            {/* Controls sidebar */}
+            <div className="space-y-4">
+              {/* Speed control */}
+              <div className="bg-card p-4 rounded-lg border border-border">
+                <h3 className="font-semibold mb-4 text-sm text-muted-foreground uppercase tracking-wide">
+                  Speed
+                </h3>
+                <SpeedControl />
+              </div>
+
+              {/* Loop controls */}
+              <div className="bg-card p-4 rounded-lg border border-border">
+                <h3 className="font-semibold mb-4 text-sm text-muted-foreground uppercase tracking-wide">
+                  Loop
+                </h3>
+                <LoopControls />
+              </div>
+
+              {/* Presets */}
+              <div className="bg-card p-4 rounded-lg border border-border">
+                <h3 className="font-semibold mb-4 text-sm text-muted-foreground uppercase tracking-wide">
+                  Presets
+                </h3>
+                <PresetManager
+                  presets={presets}
+                  onSave={handleSavePreset}
+                  onDelete={handleDeletePreset}
+                  dialogOpen={saveDialogOpen}
+                  onDialogOpenChange={setSaveDialogOpen}
+                />
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Empty state */
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-24 h-24 mb-6 rounded-full bg-secondary flex items-center justify-center">
+              <span className="text-4xl">🎸</span>
+            </div>
+            <h2 className="text-2xl font-bold mb-2">Ready to Practice</h2>
+            <p className="text-muted-foreground max-w-md mb-6">
+              Paste a YouTube URL above to get started. You can loop sections,
+              adjust playback speed, and save presets for your favorite practice
+              spots.
+            </p>
+            <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <span className="text-primary">⟳</span>
+                <span>Loop any section</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-primary">⚡</span>
+                <span>25% - 200% speed</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-primary">⌨️</span>
+                <span>Keyboard shortcuts</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-primary">🎹</span>
+                <span>MIDI control</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border mt-12">
+        <div className="max-w-7xl mx-auto px-4 py-4 text-center text-sm text-muted-foreground">
+          Press <kbd>?</kbd> for keyboard shortcuts • Connect your Helix Floor
+          via MIDI bridge for hands-free control
+        </div>
+      </footer>
+    </div>
+  );
+}
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <PlayerProvider>
+      <VideoLooper />
+    </PlayerProvider>
   );
 }
