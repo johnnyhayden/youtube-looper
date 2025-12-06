@@ -120,47 +120,51 @@ function VideoLooper() {
 
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="px-4 py-2 flex items-center gap-4">
+          {/* Left: Title */}
+          <div className="flex items-center gap-3 shrink-0">
             <h1 className="text-xl font-bold tracking-tight">
               <span className="text-primary">YouTube</span> Looper
             </h1>
-            <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded">
+            <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded hidden sm:inline">
               Guitar Practice
             </span>
           </div>
-          <div className="flex items-center gap-4">
+
+          {/* Center: URL input */}
+          <div className="flex-1 flex items-center justify-center gap-2 max-w-2xl mx-auto">
+            <Input
+              type="text"
+              placeholder="Paste YouTube URL or video ID..."
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleLoadVideo()}
+              className="flex-1 h-8 text-sm"
+            />
+            <Button onClick={handleLoadVideo} size="sm" className="h-8 px-4 shrink-0">
+              Load
+            </Button>
+          </div>
+
+          {/* Right: Status and shortcuts */}
+          <div className="flex items-center gap-3 shrink-0">
             <MidiStatus isConnected={midiConnected} />
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowHelp(!showHelp)}
+              className="hidden sm:inline-flex"
             >
-              {showHelp ? 'Hide' : 'Show'} Shortcuts
+              {showHelp ? 'Hide' : '?'}
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        {/* URL input */}
-        <div className="flex gap-2 mb-6">
-          <Input
-            type="text"
-            placeholder="Paste YouTube URL or video ID..."
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleLoadVideo()}
-            className="flex-1 h-12 text-lg"
-          />
-          <Button onClick={handleLoadVideo} size="lg" className="h-12 px-8">
-            Load Video
-          </Button>
-        </div>
-
+      <main className={state.videoId ? "px-4 py-4" : "max-w-7xl mx-auto px-4 py-6"}>
         {/* Keyboard shortcuts help */}
         {showHelp && (
-          <div className="mb-6 p-4 bg-card rounded-lg border border-border">
+          <div className="mb-4 p-4 bg-card rounded-lg border border-border max-w-3xl">
             <h3 className="font-semibold mb-3">Keyboard Shortcuts</h3>
             <KeyboardShortcutsHelp />
           </div>
@@ -168,44 +172,49 @@ function VideoLooper() {
 
         {/* Main content */}
         {state.videoId ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Video and timeline - takes 2 columns on large screens */}
-            <div className="lg:col-span-2 space-y-4">
-              {/* Video player */}
+          <div className="flex flex-col xl:flex-row gap-4 h-[calc(100vh-140px)]">
+            {/* Video player - takes maximum available space */}
+            <div className="flex-1 min-w-0 min-h-[300px] xl:min-h-0">
               <YouTubePlayer videoId={state.videoId} />
+            </div>
 
+            {/* All controls sidebar - fixed width on large screens */}
+            <div className="xl:w-80 shrink-0 flex flex-col gap-3 overflow-y-auto">
               {/* Timeline */}
-              <div className="bg-card p-4 rounded-lg border border-border">
+              <div className="bg-card p-3 rounded-lg border border-border">
+                <h3 className="font-semibold mb-2 text-xs text-muted-foreground uppercase tracking-wide">
+                  Timeline
+                </h3>
                 <Timeline />
               </div>
 
               {/* Playback controls */}
-              <div className="bg-card p-4 rounded-lg border border-border">
+              <div className="bg-card p-3 rounded-lg border border-border">
+                <h3 className="font-semibold mb-2 text-xs text-muted-foreground uppercase tracking-wide">
+                  Playback
+                </h3>
                 <PlaybackControls />
               </div>
-            </div>
 
-            {/* Controls sidebar */}
-            <div className="space-y-4">
               {/* Speed control */}
-              <div className="bg-card p-4 rounded-lg border border-border">
-                <h3 className="font-semibold mb-4 text-sm text-muted-foreground uppercase tracking-wide">
+              <div className="bg-card p-3 rounded-lg border border-border">
+                <h3 className="font-semibold mb-2 text-xs text-muted-foreground uppercase tracking-wide">
                   Speed
                 </h3>
                 <SpeedControl />
               </div>
 
               {/* Loop controls */}
-              <div className="bg-card p-4 rounded-lg border border-border">
-                <h3 className="font-semibold mb-4 text-sm text-muted-foreground uppercase tracking-wide">
+              <div className="bg-card p-3 rounded-lg border border-border">
+                <h3 className="font-semibold mb-2 text-xs text-muted-foreground uppercase tracking-wide">
                   Loop
                 </h3>
                 <LoopControls />
               </div>
 
               {/* Presets */}
-              <div className="bg-card p-4 rounded-lg border border-border">
-                <h3 className="font-semibold mb-4 text-sm text-muted-foreground uppercase tracking-wide">
+              <div className="bg-card p-3 rounded-lg border border-border flex-1 min-h-0 overflow-y-auto">
+                <h3 className="font-semibold mb-2 text-xs text-muted-foreground uppercase tracking-wide">
                   Presets
                 </h3>
                 <PresetManager

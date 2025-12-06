@@ -164,8 +164,8 @@ export default function YouTubePlayer({ videoId }: YouTubePlayerProps) {
   }, []);
 
   return (
-    <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
-      <div ref={containerRef} className="w-full h-full" />
+    <div className="relative w-full h-full bg-black rounded-lg overflow-hidden">
+      <div ref={containerRef} className="w-full h-full [&>div]:w-full [&>div]:h-full [&_iframe]:w-full [&_iframe]:h-full" />
     </div>
   );
 }

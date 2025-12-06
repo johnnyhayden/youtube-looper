@@ -19,102 +19,101 @@ export default function LoopControls() {
   const canEnableLoop = hasLoopPoints && state.loop.start! < state.loop.end!;
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Loop point buttons */}
+    <div className="flex flex-col gap-3">
+      {/* Loop point buttons - compact row */}
       <div className="flex items-center gap-2">
-        <div className="flex-1 flex flex-col gap-1">
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={setLoopStartAtCurrent}
-            className="w-full font-mono text-lg h-14"
-          >
-            <span className="text-muted-foreground mr-2">[</span>
-            Set Start
-            {state.loop.start !== null && (
-              <span className="ml-2 text-emerald-500">{formatTime(state.loop.start)}</span>
-            )}
-          </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={setLoopStartAtCurrent}
+          className="flex-1 h-8 text-xs font-medium gap-1"
+        >
+          Set Start
           {state.loop.start !== null && (
-            <div className="flex gap-1">
+            <span className="text-primary font-mono">{formatTime(state.loop.start)}</span>
+          )}
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={setLoopEndAtCurrent}
+          className="flex-1 h-8 text-xs font-medium gap-1"
+        >
+          Set End
+          {state.loop.end !== null && (
+            <span className="text-primary font-mono">{formatTime(state.loop.end)}</span>
+          )}
+        </Button>
+      </div>
+
+      {/* Clear/Go to actions when loop points exist */}
+      {(state.loop.start !== null || state.loop.end !== null) && (
+        <div className="flex items-center gap-1 text-xs">
+          {state.loop.start !== null && (
+            <>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => seek(state.loop.start!)}
-                className="flex-1 text-xs"
+                className="h-6 px-2 text-xs"
               >
-                Go to
+                Go to start
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setLoopStart(null)}
-                className="text-xs text-destructive"
+                className="h-6 px-2 text-xs text-destructive hover:text-destructive"
               >
-                Clear
+                ×
               </Button>
-            </div>
+            </>
           )}
-        </div>
-
-        <div className="flex-1 flex flex-col gap-1">
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={setLoopEndAtCurrent}
-            className="w-full font-mono text-lg h-14"
-          >
-            <span className="text-muted-foreground mr-2">]</span>
-            Set End
-            {state.loop.end !== null && (
-              <span className="ml-2 text-emerald-500">{formatTime(state.loop.end)}</span>
-            )}
-          </Button>
+          {state.loop.start !== null && state.loop.end !== null && (
+            <span className="text-muted-foreground mx-1">|</span>
+          )}
           {state.loop.end !== null && (
-            <div className="flex gap-1">
+            <>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => seek(state.loop.end!)}
-                className="flex-1 text-xs"
+                className="h-6 px-2 text-xs"
               >
-                Go to
+                Go to end
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setLoopEnd(null)}
-                className="text-xs text-destructive"
+                className="h-6 px-2 text-xs text-destructive hover:text-destructive"
               >
-                Clear
+                ×
               </Button>
-            </div>
+            </>
           )}
         </div>
-      </div>
+      )}
 
       {/* Loop toggle */}
       <Button
         variant={state.loop.enabled ? 'default' : 'outline'}
-        size="lg"
+        size="sm"
         onClick={toggleLoop}
         disabled={!canEnableLoop}
-        className={`w-full h-14 text-lg font-semibold transition-all ${
+        className={`w-full h-9 text-sm font-medium transition-all ${
           state.loop.enabled
-            ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+            ? 'bg-primary hover:bg-primary/90'
             : ''
         }`}
       >
-        {state.loop.enabled ? '⟳ Loop Active' : 'Enable Loop (L)'}
+        {state.loop.enabled ? '⟳ Loop Active' : 'Enable Loop'}
+        {hasLoopPoints && (
+          <span className="ml-2 text-xs opacity-70">
+            ({formatTime(state.loop.end! - state.loop.start!)})
+          </span>
+        )}
       </Button>
-
-      {/* Loop duration info */}
-      {hasLoopPoints && (
-        <div className="text-center text-sm text-muted-foreground">
-          Loop duration: {formatTime(state.loop.end! - state.loop.start!)}
-        </div>
-      )}
     </div>
   );
 }
-
