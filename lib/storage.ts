@@ -1,20 +1,13 @@
-import { promises as fs } from 'fs';
-import path from 'path';
-import os from 'os';
-import type { VideosStore, VideoData, Preset, MidiConfig, MidiAction } from './types';
+import { Redis } from '@upstash/redis';
+import type { VideosStore, VideoData, Preset, MidiConfig } from './types';
 
-const DATA_DIR = path.join(os.homedir(), '.youtube-looper');
-const VIDEOS_FILE = path.join(DATA_DIR, 'videos.json');
-const MIDI_CONFIG_FILE = path.join(DATA_DIR, 'midi-config.json');
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL!,
+  token: process.env.KV_REST_API_TOKEN!,
+});
 
-// Ensure data directory exists
-async function ensureDataDir(): Promise<void> {
-  try {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-  } catch {
-    // Directory already exists
-  }
-}
+const VIDEOS_KEY = 'youtube-looper:videos';
+const MIDI_CONFIG_KEY = 'youtube-looper:midi-config';
 
 // Default MIDI configuration
 const defaultMidiConfig: MidiConfig = {
@@ -31,20 +24,13 @@ const defaultMidiConfig: MidiConfig = {
 
 // Load all videos data
 export async function loadVideos(): Promise<VideosStore> {
-  await ensureDataDir();
-  
-  try {
-    const data = await fs.readFile(VIDEOS_FILE, 'utf-8');
-    return JSON.parse(data) as VideosStore;
-  } catch {
-    return { videos: {} };
-  }
+  const data = await redis.get<VideosStore>(VIDEOS_KEY);
+  return data || { videos: {} };
 }
 
 // Save all videos data
 export async function saveVideos(store: VideosStore): Promise<void> {
-  await ensureDataDir();
-  await fs.writeFile(VIDEOS_FILE, JSON.stringify(store, null, 2));
+  await redis.set(VIDEOS_KEY, store);
 }
 
 // Get video data by ID
@@ -66,7 +52,7 @@ export async function saveVideo(videoId: string, data: VideoData): Promise<void>
 // Add preset to video
 export async function addPreset(videoId: string, preset: Preset): Promise<void> {
   const store = await loadVideos();
-  
+
   if (!store.videos[videoId]) {
     store.videos[videoId] = {
       title: '',
@@ -75,17 +61,17 @@ export async function addPreset(videoId: string, preset: Preset): Promise<void> 
       lastUsed: new Date().toISOString(),
     };
   }
-  
+
   store.videos[videoId].presets.push(preset);
   store.videos[videoId].lastUsed = new Date().toISOString();
-  
+
   await saveVideos(store);
 }
 
 // Update preset
 export async function updatePreset(videoId: string, preset: Preset): Promise<void> {
   const store = await loadVideos();
-  
+
   if (store.videos[videoId]) {
     const index = store.videos[videoId].presets.findIndex(p => p.id === preset.id);
     if (index !== -1) {
@@ -99,7 +85,7 @@ export async function updatePreset(videoId: string, preset: Preset): Promise<voi
 // Delete preset
 export async function deletePreset(videoId: string, presetId: string): Promise<void> {
   const store = await loadVideos();
-  
+
   if (store.videos[videoId]) {
     store.videos[videoId].presets = store.videos[videoId].presets.filter(
       p => p.id !== presetId
@@ -111,30 +97,15 @@ export async function deletePreset(videoId: string, presetId: string): Promise<v
 
 // Load MIDI config
 export async function loadMidiConfig(): Promise<MidiConfig> {
-  await ensureDataDir();
-  
-  try {
-    const data = await fs.readFile(MIDI_CONFIG_FILE, 'utf-8');
-    return JSON.parse(data) as MidiConfig;
-  } catch {
-    // Create default config
-    await saveMidiConfig(defaultMidiConfig);
-    return defaultMidiConfig;
-  }
+  const data = await redis.get<MidiConfig>(MIDI_CONFIG_KEY);
+  if (data) return data;
+
+  // Create default config
+  await saveMidiConfig(defaultMidiConfig);
+  return defaultMidiConfig;
 }
 
 // Save MIDI config
 export async function saveMidiConfig(config: MidiConfig): Promise<void> {
-  await ensureDataDir();
-  await fs.writeFile(MIDI_CONFIG_FILE, JSON.stringify(config, null, 2));
+  await redis.set(MIDI_CONFIG_KEY, config);
 }
-
-// Get data directory path (for display in UI)
-export function getDataDir(): string {
-  return DATA_DIR;
-}
-
-
-
-
-
