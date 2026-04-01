@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Rounded background -->
+  <rect width="32" height="32" rx="7" fill="#18181b"/>
+  <!-- Loop arrows (circular) -->
+  <path d="M16 6.5a9.5 9.5 0 0 1 8.2 4.7" stroke="#a855f7" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+  <path d="M24.2 11.2l1.3-3.5 3.5 1.3" stroke="#a855f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M16 25.5a9.5 9.5 0 0 1-8.2-4.7" stroke="#a855f7" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+  <path d="M7.8 20.8l-1.3 3.5-3.5-1.3" stroke="#a855f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Play triangle -->
+  <polygon points="13,11 13,21 22,16" fill="#e4e4e7"/>
+</svg>

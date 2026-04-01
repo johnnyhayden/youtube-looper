@@ -173,12 +173,24 @@ Here's a suggested footswitch layout:
 
 **Tip**: Use Expression Pedal 2 for speed control - heel down = 25%, toe down = 200%. This lets you smoothly adjust speed while playing!
 
+## Deployment
+
+The app is deployed on **Vercel** with automatic deploys from the `main` branch. Storage is backed by **Upstash Redis** (via Vercel's storage integration).
+
+Live: [youtube-looper-beta.vercel.app](https://youtube-looper-beta.vercel.app)
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `KV_REST_API_URL` | Upstash Redis REST URL |
+| `KV_REST_API_TOKEN` | Upstash Redis REST token |
+
+These are automatically set on Vercel. For local dev, run `vercel env pull .env.local`.
+
 ## Data Storage
 
-All your data is stored locally in `~/.youtube-looper/`:
-
-- `videos.json` - Your saved videos and presets
-- `midi-config.json` - Your MIDI CC mappings
+Video presets and MIDI config are stored in **Upstash Redis** (persistent key-value store), accessible from both local development and the Vercel deployment.
 
 ## Workflow Tips
 
