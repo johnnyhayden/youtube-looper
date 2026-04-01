@@ -11,6 +11,7 @@ import SpeedControl from '@/components/SpeedControl';
 import PlaybackControls from '@/components/PlaybackControls';
 import PresetManager from '@/components/PresetManager';
 import KeyboardShortcuts, { KeyboardShortcutsHelp } from '@/components/KeyboardShortcuts';
+import VideoHistory from '@/components/VideoHistory';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { Preset } from '@/lib/types';
@@ -73,6 +74,32 @@ function VideoLooper() {
     const videoId = extractVideoId(url);
     if (videoId) {
       setVideoId(videoId);
+    }
+  };
+
+  const handleSelectFromHistory = (videoId: string) => {
+    setVideoId(videoId);
+    setUrl(''); // Clear the input when selecting from history
+  };
+
+  const handleVideoTitleLoaded = async (title: string) => {
+    if (!state.videoId || !title) return;
+    
+    try {
+      await fetch('/api/videos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          videoId: state.videoId,
+          data: {
+            title,
+            url: `https://youtube.com/watch?v=${state.videoId}`,
+            presets: [],
+          },
+        }),
+      });
+    } catch (err) {
+      console.error('Error saving video title:', err);
     }
   };
 
@@ -144,6 +171,10 @@ function VideoLooper() {
             <Button onClick={handleLoadVideo} size="sm" className="h-8 px-4 shrink-0">
               Load
             </Button>
+            <VideoHistory 
+              onSelect={handleSelectFromHistory} 
+              currentVideoId={state.videoId} 
+            />
           </div>
 
           {/* Right: Status and shortcuts */}
@@ -175,7 +206,10 @@ function VideoLooper() {
           <div className="flex flex-col xl:flex-row gap-4 h-[calc(100vh-140px)]">
             {/* Video player - takes maximum available space */}
             <div className="flex-1 min-w-0 min-h-[300px] xl:min-h-0">
-              <YouTubePlayer videoId={state.videoId} />
+              <YouTubePlayer 
+                videoId={state.videoId} 
+                onTitleLoaded={handleVideoTitleLoaded}
+              />
             </div>
 
             {/* All controls sidebar - fixed width on large screens */}

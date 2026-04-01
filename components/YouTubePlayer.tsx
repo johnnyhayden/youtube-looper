@@ -39,14 +39,16 @@ interface YTPlayerInstance {
   setPlaybackRate: (rate: number) => void;
   getPlaybackRate: () => number;
   destroy: () => void;
+  getVideoData: () => { title: string; video_id: string; author: string };
 }
 
 interface YouTubePlayerProps {
   videoId: string;
+  onTitleLoaded?: (title: string) => void;
 }
 
-export default function YouTubePlayer({ videoId }: YouTubePlayerProps) {
-  const { playerRef, state, updateTime, updateDuration, updatePlaying, setSpeed } = usePlayer();
+export default function YouTubePlayer({ videoId, onTitleLoaded }: YouTubePlayerProps) {
+  const { playerRef, state, updateTime, updateDuration, updatePlaying } = usePlayer();
   const containerRef = useRef<HTMLDivElement>(null);
   const playerInstanceRef = useRef<YTPlayerInstance | null>(null);
   const timeUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -66,7 +68,6 @@ export default function YouTubePlayer({ videoId }: YouTubePlayerProps) {
       playerVars: {
         autoplay: 0,
         controls: 1,
-        modestbranding: 1,
         rel: 0,
         fs: 1,
         playsinline: 1,
@@ -77,6 +78,17 @@ export default function YouTubePlayer({ videoId }: YouTubePlayerProps) {
           updateDuration(event.target.getDuration());
           // Set initial speed
           event.target.setPlaybackRate(speedToYouTube(state.speed));
+          // Get video title after a short delay (YouTube API needs time to load metadata)
+          setTimeout(() => {
+            try {
+              const videoData = event.target.getVideoData();
+              if (videoData?.title && onTitleLoaded) {
+                onTitleLoaded(videoData.title);
+              }
+            } catch (e) {
+              console.error('Error getting video title:', e);
+            }
+          }, 500);
         },
         onStateChange: (event) => {
           const isPlaying = event.data === window.YT.PlayerState.PLAYING;

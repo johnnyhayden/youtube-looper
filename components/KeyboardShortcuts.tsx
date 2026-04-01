@@ -139,16 +139,84 @@ export function KeyboardShortcutsHelp() {
     { key: 'R', action: 'Reset' },
   ];
 
+  const midiMappings = [
+    { cc: '1', action: 'Play / Pause' },
+    { cc: '2', action: 'Toggle loop' },
+    { cc: '3', action: 'Next preset' },
+    { cc: '4', action: 'Previous preset' },
+    { cc: '5', action: 'Speed down' },
+    { cc: '6', action: 'Speed up' },
+    { cc: '7', action: 'Set speed (0-127 → 25-200%)' },
+  ];
+
   return (
-    <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
-      {shortcuts.map(({ key, action }) => (
-        <div key={key} className="flex items-center gap-2">
-          <kbd className="px-2 py-0.5 bg-secondary rounded text-xs font-mono min-w-[60px] text-center">
-            {key}
-          </kbd>
-          <span className="text-muted-foreground">{action}</span>
+    <div className="space-y-6">
+      {/* Keyboard Shortcuts */}
+      <div>
+        <h4 className="text-sm font-medium mb-2">Keyboard</h4>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+          {shortcuts.map(({ key, action }) => (
+            <div key={key} className="flex items-center gap-2">
+              <kbd className="px-2 py-0.5 bg-secondary rounded text-xs font-mono min-w-[60px] text-center">
+                {key}
+              </kbd>
+              <span className="text-muted-foreground">{action}</span>
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
+
+      {/* Helix Floor Setup */}
+      <div>
+        <h4 className="text-sm font-medium mb-2">🎸 Helix Floor Setup</h4>
+        <div className="text-sm text-muted-foreground space-y-3">
+          <div>
+            <p className="font-medium text-foreground mb-1">1. Start the MIDI Bridge</p>
+            <p>Run this command in a terminal:</p>
+            <code className="block mt-1 px-2 py-1 bg-secondary rounded text-xs font-mono">
+              cd midi-bridge && npm install && node server.js
+            </code>
+          </div>
+          
+          <div>
+            <p className="font-medium text-foreground mb-1">2. Connect Helix Floor via USB</p>
+            <p>The bridge will auto-detect your Helix when connected.</p>
+          </div>
+          
+          <div>
+            <p className="font-medium text-foreground mb-1">3. Configure Helix Command Center</p>
+            <p>In HX Edit, set up footswitches to send MIDI CC messages:</p>
+            <ul className="mt-1 ml-4 list-disc space-y-0.5">
+              <li>Command: <span className="font-mono">CC Toggle</span> or <span className="font-mono">CC Momentary</span></li>
+              <li>MIDI Ch: <span className="font-mono">1</span> (or any channel)</li>
+              <li>CC#: See mappings below</li>
+              <li>Value: <span className="font-mono">0-127</span></li>
+            </ul>
+          </div>
+
+          <div>
+            <p className="font-medium text-foreground mb-2">Default MIDI CC Mappings</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+              {midiMappings.map(({ cc, action }) => (
+                <div key={cc} className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 bg-secondary rounded text-xs font-mono min-w-[45px] text-center">
+                    CC {cc}
+                  </span>
+                  <span>{action}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="font-medium text-foreground mb-1">Custom Mappings</p>
+            <p>Edit the config file to customize CC assignments:</p>
+            <code className="block mt-1 px-2 py-1 bg-secondary rounded text-xs font-mono">
+              ~/.youtube-looper/midi-config.json
+            </code>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

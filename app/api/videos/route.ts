@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/videos - Save video data
+// POST /api/videos - Save video data (merges with existing data to preserve presets)
 export async function POST(request: NextRequest) {
   try {
     const { videoId, data } = await request.json();
@@ -29,7 +29,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing videoId or data' }, { status: 400 });
     }
 
-    await saveVideo(videoId, data);
+    // Get existing video data to preserve presets
+    const existingVideo = await getVideo(videoId);
+    const mergedData = {
+      ...data,
+      presets: existingVideo?.presets || data.presets || [],
+    };
+
+    await saveVideo(videoId, mergedData);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error saving video:', error);

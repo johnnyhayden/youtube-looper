@@ -2,13 +2,26 @@
 
 A specialized YouTube video looper designed for guitar players learning solos and licks. Features precise loop control, fine-grained speed adjustment (25%-200% in 5% increments), keyboard shortcuts, and MIDI control for hands-free operation with your Helix Floor.
 
+## Tech Stack
+
+- **Next.js 16** (React 19, TypeScript)
+- **Tailwind CSS 4** with Radix UI components
+- **YouTube IFrame API** for embedded playback
+- **MIDI Bridge** — standalone Node.js server using `easymidi` + WebSocket
+
 ## Features
 
 - **Visual Timeline**: Click and drag to set loop regions, or tap to mark points while playing
 - **Fine-Grained Speed Control**: 25% to 200% in 5% increments
 - **Per-Video Presets**: Save and recall your favorite practice loops (e.g., "Intro Riff - 50%", "Full Solo - 75%")
+- **Video History**: Quick access to your 10 most recently practiced videos
 - **Keyboard Shortcuts**: Full control without leaving your guitar
 - **MIDI Control**: Use your Helix Floor footswitches to control playback
+
+## Prerequisites
+
+- Node.js >= 18.0.0
+- npm
 
 ## Quick Start
 
@@ -207,6 +220,19 @@ For a typical guitar solo, consider saving these presets:
 1. Make sure you're using a valid YouTube URL
 2. Try using just the video ID (the 11-character code)
 3. Some videos may have embedding disabled by the uploader
+
+## Project Structure
+
+```
+youtube-looper/
+├── app/                  # Next.js app router
+│   ├── api/              # REST API routes (presets, videos, history)
+│   └── page.tsx          # Main page component
+├── components/           # React components (player, timeline, controls)
+│   └── ui/               # Reusable Radix-based UI primitives
+├── lib/                  # State management, storage, types, MIDI client
+└── midi-bridge/          # Standalone MIDI-to-WebSocket bridge server
+```
 
 ## Development
 
