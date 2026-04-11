@@ -173,6 +173,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'LOAD_PRESET', payload: preset });
     playerRef.current?.setPlaybackRate(speedToYouTube(preset.speed));
     playerRef.current?.seekTo(preset.start, true);
+    playerRef.current?.playVideo();
   }, []);
 
   const reset = useCallback(() => {

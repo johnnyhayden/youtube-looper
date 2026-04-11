@@ -47,8 +47,8 @@ export function parseTime(timeStr: string): number | null {
 }
 
 // Speed utilities
-export const MIN_SPEED = 25;
-export const MAX_SPEED = 200;
+export const MIN_SPEED = 40;
+export const MAX_SPEED = 110;
 export const SPEED_STEP = 5;
 
 export function clampSpeed(speed: number): number {

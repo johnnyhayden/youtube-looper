@@ -280,7 +280,7 @@ function VideoLooper() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-primary">⚡</span>
-                <span>25% - 200% speed</span>
+                <span>40% - 110% speed</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-primary">⌨️</span>

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { MIN_SPEED, MAX_SPEED, SPEED_STEP } from '@/lib/youtube';
 
-const QUICK_SPEEDS = [25, 50, 75, 100, 125, 150];
+const QUICK_SPEEDS = [50, 60, 70, 80, 90, 100];
 
 export default function SpeedControl() {
   const { state, setSpeed, adjustSpeed } = usePlayer();

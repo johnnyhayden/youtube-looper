@@ -146,7 +146,7 @@ export function KeyboardShortcutsHelp() {
     { cc: '4', action: 'Previous preset' },
     { cc: '5', action: 'Speed down' },
     { cc: '6', action: 'Speed up' },
-    { cc: '7', action: 'Set speed (0-127 → 25-200%)' },
+    { cc: '7', action: 'Set speed (0-127 → 40-110%)' },
   ];
 
   return (

@@ -1,6 +1,6 @@
 # YouTube Looper - Guitar Practice Tool
 
-A specialized YouTube video looper designed for guitar players learning solos and licks. Features precise loop control, fine-grained speed adjustment (25%-200% in 5% increments), keyboard shortcuts, and MIDI control for hands-free operation with your Helix Floor.
+A specialized YouTube video looper designed for guitar players learning solos and licks. Features precise loop control, fine-grained speed adjustment (40%-110% in 5% increments), keyboard shortcuts, and MIDI control for hands-free operation with your Helix Floor.
 
 ## Tech Stack
 
@@ -12,8 +12,8 @@ A specialized YouTube video looper designed for guitar players learning solos an
 ## Features
 
 - **Visual Timeline**: Click and drag to set loop regions, or tap to mark points while playing
-- **Fine-Grained Speed Control**: 25% to 200% in 5% increments
-- **Per-Video Presets**: Save and recall your favorite practice loops (e.g., "Intro Riff - 50%", "Full Solo - 75%")
+- **Fine-Grained Speed Control**: 40% to 110% in 5% increments, tuned for practice pace
+- **Per-Video Presets**: Save and recall your favorite practice loops (e.g., "Intro Riff - 60%", "Full Solo - 80%"). Clicking a preset instantly seeks, applies its speed, and starts playback
 - **Video History**: Quick access to your 10 most recently practiced videos
 - **Keyboard Shortcuts**: Full control without leaving your guitar
 - **MIDI Control**: Use your Helix Floor footswitches to control playback
@@ -60,9 +60,9 @@ npm start
 | `←` / `→` | Seek -5s / +5s |
 | `Shift + ←` / `→` | Seek -1s / +1s |
 | `-` / `+` | Decrease / Increase speed by 5% |
-| `1` - `9` | Load preset 1-9 |
+| `1` - `9` | Load preset 1-9 (auto-plays) |
 | `S` | Save current loop as preset |
-| `R` | Reset (full video, 100% speed) |
+| `R` | Reset all (position, 100% speed, loop off) |
 
 ## MIDI Setup with Helix Floor
 
@@ -94,7 +94,7 @@ On your Helix Floor, you need to assign footswitches to send MIDI CC messages:
 | CC 4 | Previous Preset |
 | CC 5 | Speed Down 5% |
 | CC 6 | Speed Up 5% |
-| CC 7 | Set Speed (0-127 maps to 25%-200%) |
+| CC 7 | Set Speed (0-127 maps to 40%-110%) |
 
 ### Step 3: Start the MIDI Bridge
 
@@ -152,7 +152,7 @@ Available actions:
 - `prev_preset` - Load the previous saved preset
 - `speed_down` - Decrease speed by 5%
 - `speed_up` - Increase speed by 5%
-- `set_speed` - Set speed based on CC value (0-127 → 25%-200%)
+- `set_speed` - Set speed based on CC value (0-127 → 40%-110%)
 
 ### Example Helix Setup
 
@@ -171,7 +171,7 @@ Here's a suggested footswitch layout:
 └─────────────┴─────────────┴─────────────┴─────────────┘
 ```
 
-**Tip**: Use Expression Pedal 2 for speed control - heel down = 25%, toe down = 200%. This lets you smoothly adjust speed while playing!
+**Tip**: Use Expression Pedal 2 for speed control - heel down = 40%, toe down = 110%. This lets you smoothly adjust speed while playing!
 
 ## Deployment
 
@@ -198,7 +198,7 @@ Video presets and MIDI config are stored in **Upstash Redis** (persistent key-va
 
 1. **First Pass**: Watch at 100% to get the overall feel
 2. **Break It Down**: Set loop points around difficult sections
-3. **Slow It Down**: Start at 50% or lower
+3. **Slow It Down**: Start at 50% or 60%
 4. **Gradual Speed Up**: Increase by 5-10% as you nail each section
 5. **Save Presets**: Save your practice spots for quick recall
 
@@ -206,11 +206,11 @@ Video presets and MIDI config are stored in **Upstash Redis** (persistent key-va
 
 For a typical guitar solo, consider saving these presets:
 
-1. "Full Solo - 50%" - The entire solo at half speed
-2. "Full Solo - 75%" - The entire solo at 3/4 speed
-3. "Intro Lick - 40%" - The opening phrase, very slow
-4. "Fast Run - 35%" - That tricky fast section
-5. "Ending - 60%" - The finale
+1. "Full Solo - 60%" - The entire solo at a comfortable practice pace
+2. "Full Solo - 80%" - The entire solo near full speed
+3. "Intro Lick - 50%" - The opening phrase, slowed down
+4. "Fast Run - 40%" - That tricky fast section at minimum speed
+5. "Ending - 70%" - The finale
 
 ## Troubleshooting
 
