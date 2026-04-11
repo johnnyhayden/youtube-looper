@@ -11,13 +11,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
 import { formatTime } from '@/lib/youtube';
 import type { Preset } from '@/lib/types';
 
@@ -60,70 +53,62 @@ export default function PresetManager({
 
   return (
     <>
-      {/* Presets dropdown */}
-      <div className="flex items-center gap-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="flex-1 justify-between">
-              <span>Presets ({presets.length})</span>
-              <span className="text-muted-foreground">▼</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-72">
-            {presets.length === 0 ? (
-              <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-                No presets saved yet.
-                <br />
-                Press <kbd className="px-1 bg-secondary rounded">S</kbd> to save current loop.
-              </div>
-            ) : (
-              <>
-                {presets.map((preset, index) => (
-                  <DropdownMenuItem
-                    key={preset.id}
-                    className="flex items-center justify-between cursor-pointer"
-                    onClick={() => loadPreset(preset)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground font-mono text-xs">
-                        {index + 1}.
-                      </span>
-                      <div>
-                        <div className="font-medium">{preset.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatTime(preset.start)} → {formatTime(preset.end)} @ {preset.speed}%
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(preset.id);
-                      }}
-                    >
-                      ×
-                    </Button>
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-                <div className="px-2 py-1 text-xs text-muted-foreground">
-                  Press 1-9 to quick-load presets
-                </div>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
+      <div className="flex flex-col gap-2">
         <Button
           variant="secondary"
+          size="sm"
           onClick={() => onDialogOpenChange(true)}
           disabled={state.loop.start === null || state.loop.end === null}
+          className="w-full"
         >
-          Save (S)
+          Save Current Loop (S)
         </Button>
+
+        {presets.length === 0 ? (
+          <div className="px-2 py-4 text-center text-xs text-muted-foreground">
+            No presets saved yet.
+            <br />
+            Press <kbd className="px-1 bg-secondary rounded">S</kbd> to save current loop.
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-col gap-1">
+              {presets.map((preset, index) => (
+                <div
+                  key={preset.id}
+                  className="group flex items-center justify-between gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer"
+                  onClick={() => loadPreset(preset)}
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <span className="text-muted-foreground font-mono text-xs shrink-0">
+                      {index + 1}.
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-sm truncate">{preset.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {formatTime(preset.start)} → {formatTime(preset.end)} @ {preset.speed}%
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-destructive hover:text-destructive shrink-0 opacity-0 group-hover:opacity-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(preset.id);
+                    }}
+                  >
+                    ×
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <div className="px-2 pt-1 text-xs text-muted-foreground border-t border-border">
+              Press 1-9 to quick-load presets
+            </div>
+          </>
+        )}
       </div>
 
       {/* Save preset dialog */}

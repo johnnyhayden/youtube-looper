@@ -53,6 +53,11 @@ export default function YouTubePlayer({ videoId, onTitleLoaded }: YouTubePlayerP
   const playerInstanceRef = useRef<YTPlayerInstance | null>(null);
   const timeUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isApiReady = useRef(false);
+  const speedRef = useRef(state.speed);
+
+  useEffect(() => {
+    speedRef.current = state.speed;
+  }, [state.speed]);
 
   const initPlayer = useCallback(() => {
     if (!containerRef.current || !window.YT || playerInstanceRef.current) return;
@@ -77,7 +82,7 @@ export default function YouTubePlayer({ videoId, onTitleLoaded }: YouTubePlayerP
           playerRef.current = event.target;
           updateDuration(event.target.getDuration());
           // Set initial speed
-          event.target.setPlaybackRate(speedToYouTube(state.speed));
+          event.target.setPlaybackRate(speedToYouTube(speedRef.current));
           // Get video title after a short delay (YouTube API needs time to load metadata)
           setTimeout(() => {
             try {
@@ -123,7 +128,7 @@ export default function YouTubePlayer({ videoId, onTitleLoaded }: YouTubePlayerP
         },
       },
     });
-  }, [videoId, playerRef, state.speed, updateTime, updateDuration, updatePlaying]);
+  }, [videoId, playerRef, updateTime, updateDuration, updatePlaying, onTitleLoaded]);
 
   // Load YouTube IFrame API
   useEffect(() => {

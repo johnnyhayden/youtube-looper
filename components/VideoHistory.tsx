@@ -97,7 +97,7 @@ export default function VideoHistory({ onSelect, currentVideoId }: VideoHistoryP
       </Button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 mt-1 w-72 bg-popover border border-border rounded-lg shadow-lg z-50 overflow-hidden">
+        <div className="absolute top-full right-0 mt-1 w-[28rem] max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-lg shadow-lg z-50 overflow-hidden">
           <div className="px-3 py-2 border-b border-border">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Recent Videos
