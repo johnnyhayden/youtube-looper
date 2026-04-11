@@ -54,10 +54,15 @@ export default function YouTubePlayer({ videoId, onTitleLoaded }: YouTubePlayerP
   const timeUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isApiReady = useRef(false);
   const speedRef = useRef(state.speed);
+  const onTitleLoadedRef = useRef(onTitleLoaded);
 
   useEffect(() => {
     speedRef.current = state.speed;
   }, [state.speed]);
+
+  useEffect(() => {
+    onTitleLoadedRef.current = onTitleLoaded;
+  }, [onTitleLoaded]);
 
   const initPlayer = useCallback(() => {
     if (!containerRef.current || !window.YT || playerInstanceRef.current) return;
@@ -87,8 +92,8 @@ export default function YouTubePlayer({ videoId, onTitleLoaded }: YouTubePlayerP
           setTimeout(() => {
             try {
               const videoData = event.target.getVideoData();
-              if (videoData?.title && onTitleLoaded) {
-                onTitleLoaded(videoData.title);
+              if (videoData?.title && onTitleLoadedRef.current) {
+                onTitleLoadedRef.current(videoData.title);
               }
             } catch (e) {
               console.error('Error getting video title:', e);
@@ -128,7 +133,7 @@ export default function YouTubePlayer({ videoId, onTitleLoaded }: YouTubePlayerP
         },
       },
     });
-  }, [videoId, playerRef, updateTime, updateDuration, updatePlaying, onTitleLoaded]);
+  }, [videoId, playerRef, updateTime, updateDuration, updatePlaying]);
 
   // Load YouTube IFrame API
   useEffect(() => {
