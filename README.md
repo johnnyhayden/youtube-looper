@@ -18,6 +18,7 @@ A specialized YouTube video looper designed for guitar players learning solos an
 - **Per-Video Presets**: Save and recall your favorite practice loops (e.g., "Intro Riff - 60%", "Full Solo - 80%"). Clicking a preset instantly seeks, applies its speed, and starts playback
 - **Video History**: Quick access to your 10 most recently practiced videos
 - **Google Login**: Presets and history are saved to your account, server-side
+- **Setlists**: Upload a Spotify playlist CSV from [Exportify](https://exportify.net) and get the best guitar solo lesson for every song (ranked to favor solos, then tabs, views and channel, with DadRock TABS lessons preferred when available). Click a song to practice it in the looper, or pick an alternate lesson from the dropdown
 - **Keyboard Shortcuts**: Full control without leaving your guitar
 - **MIDI Control**: Use your Helix Floor footswitches to control playback
 
@@ -191,6 +192,7 @@ Live: [youtube-looper-beta.vercel.app](https://youtube-looper-beta.vercel.app)
 | `AUTH_SECRET` | Secret used to sign session cookies (generate with `npx auth secret`) |
 | `AUTH_GOOGLE_ID` | Google OAuth client ID |
 | `AUTH_GOOGLE_SECRET` | Google OAuth client secret |
+| `YOUTUBE_API_KEY` | YouTube Data API v3 key used to find lesson videos for setlists. Results are cached in Redis for 30 days; each uncached song uses ~102 of the 10,000 daily quota units |
 | `ALLOWED_EMAILS` | Optional comma-separated list of Google accounts allowed to sign in. If unset, any Google account can sign in |
 
 The Redis variables are set automatically on Vercel by the Upstash for Redis integration (free plan, auto-upgrade off). For local dev, run `vercel env pull .env.local`.

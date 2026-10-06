@@ -44,3 +44,59 @@ export type MidiAction =
   | 'speed_down'
   | 'speed_up'
   | 'set_speed';
+
+export interface SetlistSong {
+  id: string;
+  title: string;
+  artist: string;
+  album: string;
+  durationMs: number | null;
+  key: number | null; // Pitch class (0 = C ... 11 = B)
+  mode: number | null; // 1 = major, 0 = minor
+  tempo: number | null;
+  videoId?: string; // User-chosen lesson video, overrides the best match
+}
+
+export interface Setlist {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  songs: SetlistSong[];
+}
+
+export interface SetlistSummary {
+  id: string;
+  name: string;
+  songCount: number;
+  updatedAt: string;
+}
+
+export interface SetlistsStore {
+  setlists: Record<string, Setlist>;
+}
+
+export interface LessonVideo {
+  videoId: string;
+  title: string;
+  channelTitle: string;
+  viewCount: number;
+  subscriberCount: number | null;
+  durationSec: number;
+  hasTabs: boolean;
+  hasSolo: boolean;
+  score: number;
+}
+
+// Raw YouTube search result, cached so ranking can change without new API calls
+export interface LessonCandidate {
+  videoId: string;
+  title: string;
+  description: string;
+  tags: string;
+  channelId: string;
+  channelTitle: string;
+  viewCount: number;
+  subscriberCount: number | null;
+  durationSec: number;
+}

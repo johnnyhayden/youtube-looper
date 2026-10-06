@@ -13,9 +13,13 @@ import PresetManager from '@/components/PresetManager';
 import KeyboardShortcuts, { KeyboardShortcutsHelp } from '@/components/KeyboardShortcuts';
 import VideoHistory from '@/components/VideoHistory';
 import UserMenu from '@/components/UserMenu';
+import SetlistMenu from '@/components/SetlistMenu';
+import SetlistView from '@/components/SetlistView';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import type { Preset } from '@/lib/types';
+import { parseExportifyCsv } from '@/lib/setlist';
+import { ArrowLeft, Upload } from 'lucide-react';
+import type { Preset, Setlist, SetlistSummary } from '@/lib/types';
 
 function VideoLooper() {
   const {
@@ -33,6 +37,35 @@ function VideoLooper() {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const currentPresetIndex = useRef(0);
+  const [setlists, setSetlists] = useState<SetlistSummary[]>([]);
+  const [activeSetlist, setActiveSetlist] = useState<Setlist | null>(null);
+  const [setlistError, setSetlistError] = useState<string | null>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
+
+  const openSetlist = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/setlists?id=${encodeURIComponent(id)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setActiveSetlist(data.setlist);
+      setSetlistError(null);
+    } catch (err) {
+      console.error('Error opening setlist:', err);
+      setSetlistError('Could not open that setlist.');
+    }
+  }, []);
+
+  // Load saved setlists and open the most recent one
+  useEffect(() => {
+    fetch('/api/setlists')
+      .then((res) => res.json())
+      .then((data) => {
+        const list: SetlistSummary[] = data.setlists || [];
+        setSetlists(list);
+        if (list.length > 0) openSetlist(list[0].id);
+      })
+      .catch(console.error);
+  }, [openSetlist]);
 
   // Load presets when video changes
   useEffect(() => {
@@ -81,6 +114,83 @@ function VideoLooper() {
   const handleSelectFromHistory = (videoId: string) => {
     setVideoId(videoId);
     setUrl(''); // Clear the input when selecting from history
+  };
+
+  const handleImportCsv = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // Allow re-importing the same file
+    if (!file) return;
+
+    try {
+      const songs = parseExportifyCsv(await file.text());
+      if (songs.length === 0) throw new Error('No songs found in that CSV.');
+
+      const res = await fetch('/api/setlists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: file.name.replace(/\.csv$/i, '').replace(/[_-]+/g, ' ').trim(),
+          songs,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save setlist.');
+
+      const setlist: Setlist = data.setlist;
+      setActiveSetlist(setlist);
+      setSetlists((prev) => [
+        { id: setlist.id, name: setlist.name, songCount: setlist.songs.length, updatedAt: setlist.updatedAt },
+        ...prev,
+      ]);
+      setSetlistError(null);
+      setVideoId(null);
+    } catch (err) {
+      setSetlistError(err instanceof Error ? err.message : 'Could not import that CSV.');
+    }
+  };
+
+  const handleChooseLessonVideo = async (songId: string, videoId: string | null) => {
+    if (!activeSetlist) return;
+
+    // Optimistic update
+    setActiveSetlist({
+      ...activeSetlist,
+      songs: activeSetlist.songs.map((s) =>
+        s.id === songId ? { ...s, videoId: videoId ?? undefined } : s
+      ),
+    });
+
+    try {
+      await fetch('/api/setlists', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: activeSetlist.id, songId, videoId }),
+      });
+    } catch (err) {
+      console.error('Error saving lesson choice:', err);
+    }
+  };
+
+  const handleDeleteSetlist = async () => {
+    if (!activeSetlist) return;
+    const id = activeSetlist.id;
+    setActiveSetlist(null);
+    setSetlists((prev) => prev.filter((s) => s.id !== id));
+    try {
+      await fetch(`/api/setlists?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    } catch (err) {
+      console.error('Error deleting setlist:', err);
+    }
+  };
+
+  const handlePlayFromSetlist = (videoId: string) => {
+    setVideoId(videoId);
+    setUrl('');
+  };
+
+  const handleOpenSetlist = (id: string) => {
+    setVideoId(null);
+    openSetlist(id);
   };
 
   const handleVideoTitleLoaded = async (title: string) => {
@@ -161,6 +271,18 @@ function VideoLooper() {
 
           {/* Center: URL input */}
           <div className="flex-1 flex items-center justify-center gap-2 max-w-2xl mx-auto">
+            {state.videoId && activeSetlist && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setVideoId(null)}
+                className="h-8 px-2 shrink-0"
+                title={`Back to ${activeSetlist.name}`}
+              >
+                <ArrowLeft />
+                <span className="text-xs hidden md:inline">Setlist</span>
+              </Button>
+            )}
             <Input
               type="text"
               placeholder="Paste YouTube URL or video ID..."
@@ -175,6 +297,19 @@ function VideoLooper() {
             <VideoHistory 
               onSelect={handleSelectFromHistory} 
               currentVideoId={state.videoId} 
+            />
+            <SetlistMenu
+              setlists={setlists}
+              activeId={activeSetlist?.id ?? null}
+              onOpen={handleOpenSetlist}
+              onImport={() => csvInputRef.current?.click()}
+            />
+            <input
+              ref={csvInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              onChange={handleImportCsv}
+              className="hidden"
             />
           </div>
 
@@ -200,6 +335,12 @@ function VideoLooper() {
           <div className="mb-4 p-4 bg-card rounded-lg border border-border max-w-3xl">
             <h3 className="font-semibold mb-3">Keyboard Shortcuts</h3>
             <KeyboardShortcutsHelp />
+          </div>
+        )}
+
+        {setlistError && (
+          <div className="mb-4 p-3 rounded-lg border border-destructive/50 text-sm text-destructive max-w-3xl mx-auto">
+            {setlistError}
           </div>
         )}
 
@@ -263,6 +404,14 @@ function VideoLooper() {
               </div>
             </div>
           </div>
+        ) : activeSetlist ? (
+          <SetlistView
+            key={activeSetlist.id}
+            setlist={activeSetlist}
+            onPlay={handlePlayFromSetlist}
+            onChooseVideo={handleChooseLessonVideo}
+            onDelete={handleDeleteSetlist}
+          />
         ) : (
           /* Empty state */
           <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -275,6 +424,10 @@ function VideoLooper() {
               adjust playback speed, and save presets for your favorite practice
               spots.
             </p>
+            <Button variant="secondary" onClick={() => csvInputRef.current?.click()} className="mb-8">
+              <Upload />
+              Upload CSV setlist
+            </Button>
             <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <span className="text-primary">⟳</span>
