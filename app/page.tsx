@@ -33,8 +33,8 @@ function VideoLooper() {
   } = usePlayer();
 
   const [url, setUrl] = useState('');
+  const [startSeconds, setStartSeconds] = useState(0);
   const [presets, setPresets] = useState<Preset[]>([]);
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const currentPresetIndex = useRef(0);
   const [setlists, setSetlists] = useState<SetlistSummary[]>([]);
@@ -107,11 +107,13 @@ function VideoLooper() {
   const handleLoadVideo = () => {
     const videoId = extractVideoId(url);
     if (videoId) {
+      setStartSeconds(0);
       setVideoId(videoId);
     }
   };
 
   const handleSelectFromHistory = (videoId: string) => {
+    setStartSeconds(0);
     setVideoId(videoId);
     setUrl(''); // Clear the input when selecting from history
   };
@@ -183,7 +185,8 @@ function VideoLooper() {
     }
   };
 
-  const handlePlayFromSetlist = (videoId: string) => {
+  const handlePlayFromSetlist = (videoId: string, startSec?: number) => {
+    setStartSeconds(startSec ?? 0);
     setVideoId(videoId);
     setUrl('');
   };
@@ -214,8 +217,20 @@ function VideoLooper() {
     }
   };
 
-  const handleSavePreset = async (preset: Omit<Preset, 'id'>) => {
-    if (!state.videoId) return;
+  // Save the current loop immediately with a default name ("Loop 1", "Loop 2", ...)
+  const handleSaveCurrentLoop = async () => {
+    if (!state.videoId || state.loop.start === null || state.loop.end === null) return;
+
+    const names = new Set(presets.map((p) => p.name));
+    let n = presets.length + 1;
+    while (names.has(`Loop ${n}`)) n++;
+
+    const preset: Omit<Preset, 'id'> = {
+      name: `Loop ${n}`,
+      start: state.loop.start,
+      end: state.loop.end,
+      speed: state.speed,
+    };
 
     try {
       const res = await fetch('/api/presets', {
@@ -232,6 +247,21 @@ function VideoLooper() {
       }
     } catch (err) {
       console.error('Error saving preset:', err);
+    }
+  };
+
+  const handleRenamePreset = async (presetId: string, name: string) => {
+    if (!state.videoId) return;
+
+    setPresets((prev) => prev.map((p) => (p.id === presetId ? { ...p, name } : p)));
+    try {
+      await fetch('/api/presets', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId: state.videoId, presetId, name }),
+      });
+    } catch (err) {
+      console.error('Error renaming preset:', err);
     }
   };
 
@@ -253,7 +283,7 @@ function VideoLooper() {
       {/* Keyboard shortcuts handler */}
       <KeyboardShortcuts
         presets={presets}
-        onSavePreset={() => setSaveDialogOpen(true)}
+        onSavePreset={handleSaveCurrentLoop}
       />
 
       {/* Header */}
@@ -351,6 +381,7 @@ function VideoLooper() {
             <div className="flex-1 min-w-0 min-h-[300px] xl:min-h-0">
               <YouTubePlayer 
                 videoId={state.videoId} 
+                startSeconds={startSeconds}
                 onTitleLoaded={handleVideoTitleLoaded}
               />
             </div>
@@ -396,10 +427,9 @@ function VideoLooper() {
                 </h3>
                 <PresetManager
                   presets={presets}
-                  onSave={handleSavePreset}
+                  onSaveCurrentLoop={handleSaveCurrentLoop}
+                  onRename={handleRenamePreset}
                   onDelete={handleDeletePreset}
-                  dialogOpen={saveDialogOpen}
-                  onDialogOpenChange={setSaveDialogOpen}
                 />
               </div>
             </div>

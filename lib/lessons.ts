@@ -85,6 +85,33 @@ function parseDuration(iso: string): number {
   return Number(m[1] || 0) * 3600 + Number(m[2] || 0) * 60 + Number(m[3] || 0);
 }
 
+// Matches "0:37", "1:02:03" and "(0:37)"
+const TIMESTAMP = /\(?\b((?:\d{1,2}:)?\d{1,2}:\d{2})\b\)?/;
+
+// If a video's description chapters start with a plain "Intro" (e.g. DadRock's
+// "Intro: (0:00)" / "Video: (0:37)"), return when the next chapter starts.
+// Sections like "Intro riff" are real lesson content and aren't skipped.
+export function startAfterIntro(description: string, durationSec: number): number | undefined {
+  const chapters = description
+    .split('\n')
+    .flatMap((line) => {
+      const m = line.match(TIMESTAMP);
+      if (!m) return [];
+      const sec = m[1].split(':').reduce((total, part) => total * 60 + Number(part), 0);
+      const label = line
+        .replace(m[0], '')
+        .replace(/^[\s\-–—:|•.)\]]+|[\s\-–—:|•.([]+$/g, '')
+        .trim();
+      return [{ sec, label }];
+    })
+    .sort((a, b) => a.sec - b.sec);
+
+  const [first, next] = chapters;
+  if (!first || !next || first.sec !== 0 || !/^intro(duction)?$/i.test(first.label)) return undefined;
+  if (next.sec <= 0 || next.sec >= durationSec / 2) return undefined;
+  return next.sec;
+}
+
 function scoreCandidate(
   video: LessonCandidate,
   songTitle: string,
@@ -292,6 +319,7 @@ export function rankLessonCandidates(
         hasTabs,
         hasSolo,
         score,
+        startSec: startAfterIntro(c.description, c.durationSec),
       };
     })
     .sort((a, b) => b.score - a.score);

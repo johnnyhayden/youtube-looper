@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserId } from '@/auth';
-import { addPreset, deletePreset, getVideo } from '@/lib/storage';
+import { addPreset, renamePreset, deletePreset, getVideo } from '@/lib/storage';
 import { v4 as uuidv4 } from 'uuid';
 import type { Preset } from '@/lib/types';
 
@@ -52,6 +52,29 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error adding preset:', error);
     return NextResponse.json({ error: 'Failed to add preset' }, { status: 500 });
+  }
+}
+
+// PATCH /api/presets - Rename a preset ({ videoId, presetId, name })
+export async function PATCH(request: NextRequest) {
+  const userId = await getUserId();
+  if (!userId) return unauthorized();
+
+  try {
+    const { videoId, presetId, name } = await request.json();
+    const trimmed = typeof name === 'string' ? name.trim().slice(0, 100) : '';
+
+    if (!videoId || !presetId || !trimmed) {
+      return NextResponse.json({ error: 'Missing videoId, presetId or name' }, { status: 400 });
+    }
+
+    if (!(await renamePreset(userId, videoId, presetId, trimmed))) {
+      return NextResponse.json({ error: 'Preset not found' }, { status: 404 });
+    }
+    return NextResponse.json({ success: true, name: trimmed });
+  } catch (error) {
+    console.error('Error renaming preset:', error);
+    return NextResponse.json({ error: 'Failed to rename preset' }, { status: 500 });
   }
 }
 

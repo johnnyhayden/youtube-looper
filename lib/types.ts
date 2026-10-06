@@ -86,6 +86,7 @@ export interface LessonVideo {
   hasTabs: boolean;
   hasSolo: boolean;
   score: number;
+  startSec?: number; // Where the lesson starts, skipping a description "Intro" chapter
 }
 
 // Raw YouTube search result, cached so ranking can change without new API calls

@@ -44,10 +44,11 @@ interface YTPlayerInstance {
 
 interface YouTubePlayerProps {
   videoId: string;
+  startSeconds?: number;
   onTitleLoaded?: (title: string) => void;
 }
 
-export default function YouTubePlayer({ videoId, onTitleLoaded }: YouTubePlayerProps) {
+export default function YouTubePlayer({ videoId, startSeconds = 0, onTitleLoaded }: YouTubePlayerProps) {
   const { playerRef, state, updateTime, updateDuration, updatePlaying } = usePlayer();
   const containerRef = useRef<HTMLDivElement>(null);
   const playerInstanceRef = useRef<YTPlayerInstance | null>(null);
@@ -55,6 +56,7 @@ export default function YouTubePlayer({ videoId, onTitleLoaded }: YouTubePlayerP
   const isApiReady = useRef(false);
   const speedRef = useRef(state.speed);
   const onTitleLoadedRef = useRef(onTitleLoaded);
+  const startSecondsRef = useRef(startSeconds);
 
   useEffect(() => {
     speedRef.current = state.speed;
@@ -63,6 +65,10 @@ export default function YouTubePlayer({ videoId, onTitleLoaded }: YouTubePlayerP
   useEffect(() => {
     onTitleLoadedRef.current = onTitleLoaded;
   }, [onTitleLoaded]);
+
+  useEffect(() => {
+    startSecondsRef.current = startSeconds;
+  }, [startSeconds]);
 
   const initPlayer = useCallback(() => {
     if (!containerRef.current || !window.YT || playerInstanceRef.current) return;
@@ -81,11 +87,13 @@ export default function YouTubePlayer({ videoId, onTitleLoaded }: YouTubePlayerP
         rel: 0,
         fs: 1,
         playsinline: 1,
+        ...(startSecondsRef.current > 0 && { start: Math.floor(startSecondsRef.current) }),
       },
       events: {
         onReady: (event) => {
           playerRef.current = event.target;
           updateDuration(event.target.getDuration());
+          if (startSecondsRef.current > 0) updateTime(startSecondsRef.current);
           // Set initial speed
           event.target.setPlaybackRate(speedToYouTube(speedRef.current));
           // Get video title after a short delay (YouTube API needs time to load metadata)

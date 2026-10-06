@@ -56,6 +56,17 @@ export async function addPreset(userId: string, videoId: string, preset: Preset)
   await saveVideos(userId, store);
 }
 
+// Rename preset
+export async function renamePreset(userId: string, videoId: string, presetId: string, name: string): Promise<boolean> {
+  const store = await loadVideos(userId);
+  const preset = store.videos[videoId]?.presets.find(p => p.id === presetId);
+  if (!preset) return false;
+
+  preset.name = name;
+  await saveVideos(userId, store);
+  return true;
+}
+
 // Delete preset
 export async function deletePreset(userId: string, videoId: string, presetId: string): Promise<void> {
   const store = await loadVideos(userId);

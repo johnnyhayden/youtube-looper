@@ -76,7 +76,7 @@ function useLessons(songs: SetlistSong[]) {
 
 interface SetlistViewProps {
   setlist: Setlist;
-  onPlay: (videoId: string) => void;
+  onPlay: (videoId: string, startSec?: number) => void;
   onChooseVideo: (songId: string, videoId: string | null) => void;
   onDelete: () => void;
 }
@@ -145,7 +145,7 @@ interface SetlistRowProps {
   song: SetlistSong;
   videos: LessonVideo[] | undefined;
   error: string | undefined;
-  onPlay: (videoId: string) => void;
+  onPlay: (videoId: string, startSec?: number) => void;
   onChooseVideo: (songId: string, videoId: string | null) => void;
   onRetry: () => void;
 }
@@ -162,7 +162,7 @@ function SetlistRow({ index, song, videos, error, onPlay, onChooseVideo, onRetry
   const handleTitleClick = (e: React.MouseEvent) => {
     if (!videoId || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
     e.preventDefault();
-    onPlay(videoId);
+    onPlay(videoId, chosen?.videoId === videoId ? chosen.startSec : undefined);
   };
 
   return (
@@ -209,6 +209,11 @@ function SetlistRow({ index, song, videos, error, onPlay, onChooseVideo, onRetry
               <span className="truncate">{chosen.channelTitle}</span>
               <span className="shrink-0">· {compact.format(chosen.viewCount)} views</span>
               <span className="shrink-0 hidden sm:inline">· {formatDuration(chosen.durationSec * 1000)}</span>
+              {chosen.startSec && (
+                <span className="shrink-0 hidden sm:inline">
+                  · skips intro → {formatDuration(chosen.startSec * 1000)}
+                </span>
+              )}
               {song.videoId && <span className="shrink-0 text-primary">· your pick</span>}
             </>
           ) : error ? (
