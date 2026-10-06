@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
-// Require Google login for every page and API route except the auth flow itself
+// Require Google login for every page and API route except the auth flow and cron jobs
+// (cron routes check CRON_SECRET themselves)
 export const proxy = auth((req) => {
   const { pathname, search } = req.nextUrl;
   const isSignInPage = pathname === '/signin';
@@ -27,5 +28,5 @@ export const proxy = auth((req) => {
 });
 
 export const config = {
-  matcher: ['/((?!api/auth|_next/static|_next/image|favicon.ico|icon.svg|.*\\.svg$).*)'],
+  matcher: ['/((?!api/auth|api/cron|_next/static|_next/image|favicon.ico|icon.svg|.*\\.svg$).*)'],
 };

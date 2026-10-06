@@ -193,6 +193,7 @@ Live: [youtube-looper-beta.vercel.app](https://youtube-looper-beta.vercel.app)
 | `AUTH_GOOGLE_ID` | Google OAuth client ID |
 | `AUTH_GOOGLE_SECRET` | Google OAuth client secret |
 | `YOUTUBE_API_KEY` | YouTube Data API v3 key used to find lesson videos for setlists. Results are cached in Redis for 30 days; each uncached song uses ~102 of the 10,000 daily quota units |
+| `CRON_SECRET` | Protects `/api/cron/keepalive`, which Vercel Cron calls daily (see `vercel.json`) to do a Redis write + read so Upstash doesn't archive the free database after 30 days of inactivity |
 | `ALLOWED_EMAILS` | Optional comma-separated list of Google accounts allowed to sign in. If unset, any Google account can sign in |
 
 The Redis variables are set automatically on Vercel by the Upstash for Redis integration (free plan, auto-upgrade off). For local dev, run `vercel env pull .env.local`.

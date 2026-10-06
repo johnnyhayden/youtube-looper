@@ -142,3 +142,10 @@ export async function getCachedChannelUploads(channelId: string): Promise<[strin
 export async function setCachedChannelUploads(channelId: string, uploads: [string, string][]): Promise<void> {
   await redis.set(`youtube-looper:channel-uploads:${channelId}`, uploads, { ex: CHANNEL_UPLOADS_TTL_SECONDS });
 }
+
+// A real write + read so Upstash doesn't archive the free database for inactivity
+export async function touchKeepalive(): Promise<string | null> {
+  const now = new Date().toISOString();
+  await redis.set('youtube-looper:keepalive', now);
+  return redis.get<string>('youtube-looper:keepalive');
+}
