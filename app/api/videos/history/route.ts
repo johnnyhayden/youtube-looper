@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getUserId } from '@/auth';
 import { loadVideos } from '@/lib/storage';
 
 export interface VideoHistoryItem {
@@ -9,8 +10,13 @@ export interface VideoHistoryItem {
 
 // GET /api/videos/history - Get recent videos sorted by last used
 export async function GET() {
+  const userId = await getUserId();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
-    const store = await loadVideos();
+    const store = await loadVideos(userId);
     
     // Convert to array and sort by lastUsed (most recent first)
     const history: VideoHistoryItem[] = Object.entries(store.videos)

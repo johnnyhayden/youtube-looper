@@ -12,6 +12,7 @@ import PlaybackControls from '@/components/PlaybackControls';
 import PresetManager from '@/components/PresetManager';
 import KeyboardShortcuts, { KeyboardShortcutsHelp } from '@/components/KeyboardShortcuts';
 import VideoHistory from '@/components/VideoHistory';
+import UserMenu from '@/components/UserMenu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { Preset } from '@/lib/types';
@@ -188,6 +189,7 @@ function VideoLooper() {
             >
               {showHelp ? 'Hide' : '?'}
             </Button>
+            <UserMenu />
           </div>
         </div>
       </header>

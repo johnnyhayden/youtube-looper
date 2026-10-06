@@ -63,7 +63,7 @@ export function useMidiBridge(handlers: MidiHandlers) {
         reconnectTimeoutRef.current = setTimeout(connect, RECONNECT_DELAY);
       };
 
-      ws.onerror = (error) => {
+      ws.onerror = () => {
         console.log('🎹 MIDI bridge connection error (bridge may not be running)');
         setIsConnected(false);
       };

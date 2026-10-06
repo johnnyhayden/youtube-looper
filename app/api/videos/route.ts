@@ -1,27 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { loadVideos, getVideo, saveVideo } from '@/lib/storage';
-
-// GET /api/videos - Get all videos or specific video
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const videoId = searchParams.get('videoId');
-
-  try {
-    if (videoId) {
-      const video = await getVideo(videoId);
-      return NextResponse.json({ video });
-    } else {
-      const store = await loadVideos();
-      return NextResponse.json(store);
-    }
-  } catch (error) {
-    console.error('Error loading videos:', error);
-    return NextResponse.json({ error: 'Failed to load videos' }, { status: 500 });
-  }
-}
+import { getUserId } from '@/auth';
+import { getVideo, saveVideo } from '@/lib/storage';
 
 // POST /api/videos - Save video data (merges with existing data to preserve presets)
 export async function POST(request: NextRequest) {
+  const userId = await getUserId();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { videoId, data } = await request.json();
 
@@ -30,17 +17,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Get existing video data to preserve presets
-    const existingVideo = await getVideo(videoId);
+    const existingVideo = await getVideo(userId, videoId);
     const mergedData = {
       ...data,
       presets: existingVideo?.presets || data.presets || [],
     };
 
-    await saveVideo(videoId, mergedData);
+    await saveVideo(userId, videoId, mergedData);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error saving video:', error);
     return NextResponse.json({ error: 'Failed to save video' }, { status: 500 });
   }
 }
-

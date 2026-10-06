@@ -5,6 +5,8 @@ A specialized YouTube video looper designed for guitar players learning solos an
 ## Tech Stack
 
 - **Next.js 16** (React 19, TypeScript)
+- **Auth.js** (NextAuth v5) with Google sign-in
+- **Upstash Redis** for per-user storage
 - **Tailwind CSS 4** with Radix UI components
 - **YouTube IFrame API** for embedded playback
 - **MIDI Bridge** — standalone Node.js server using `easymidi` + WebSocket
@@ -15,6 +17,7 @@ A specialized YouTube video looper designed for guitar players learning solos an
 - **Fine-Grained Speed Control**: 40% to 110% in 5% increments, tuned for practice pace
 - **Per-Video Presets**: Save and recall your favorite practice loops (e.g., "Intro Riff - 60%", "Full Solo - 80%"). Clicking a preset instantly seeks, applies its speed, and starts playback
 - **Video History**: Quick access to your 10 most recently practiced videos
+- **Google Login**: Presets and history are saved to your account, server-side
 - **Keyboard Shortcuts**: Full control without leaving your guitar
 - **MIDI Control**: Use your Helix Floor footswitches to control playback
 
@@ -185,12 +188,27 @@ Live: [youtube-looper-beta.vercel.app](https://youtube-looper-beta.vercel.app)
 |----------|-------------|
 | `KV_REST_API_URL` | Upstash Redis REST URL |
 | `KV_REST_API_TOKEN` | Upstash Redis REST token |
+| `AUTH_SECRET` | Secret used to sign session cookies (generate with `npx auth secret`) |
+| `AUTH_GOOGLE_ID` | Google OAuth client ID |
+| `AUTH_GOOGLE_SECRET` | Google OAuth client secret |
+| `ALLOWED_EMAILS` | Optional comma-separated list of Google accounts allowed to sign in. If unset, any Google account can sign in |
 
-These are automatically set on Vercel. For local dev, run `vercel env pull .env.local`.
+The Redis variables are set automatically on Vercel by the Upstash for Redis integration (free plan, auto-upgrade off). For local dev, run `vercel env pull .env.local`.
+
+### Google Login Setup
+
+1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials), create an **OAuth client ID** of type **Web application**
+2. Add these **Authorized redirect URIs**:
+   - `http://localhost:3000/api/auth/callback/google`
+   - `https://youtube-looper-beta.vercel.app/api/auth/callback/google`
+3. Copy the client ID and secret into `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`, both in `.env.local` and in the Vercel project settings
+4. Set `AUTH_SECRET` in both places as well
+
+The OAuth app (Google Cloud project `youtube-looper-510802`) is in **Testing** mode, so only accounts listed under **Google Auth Platform → Audience → Test users** can sign in. Add people there to give them access.
 
 ## Data Storage
 
-Video presets and MIDI config are stored in **Upstash Redis** (persistent key-value store), accessible from both local development and the Vercel deployment.
+All pages and API routes require Google sign-in. Each user's video presets and history are stored in **Upstash Redis** under their own key (`youtube-looper:user:<google-id>:videos`), so data follows your account across browsers and devices. MIDI mappings live in a local file used by the MIDI bridge (see above).
 
 ## Workflow Tips
 

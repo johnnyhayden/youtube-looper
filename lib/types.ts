@@ -44,15 +44,3 @@ export type MidiAction =
   | 'speed_down'
   | 'speed_up'
   | 'set_speed';
-
-export interface MidiMessage {
-  type: 'cc';
-  channel: number;
-  controller: number;
-  value: number;
-}
-
-
-
-
-

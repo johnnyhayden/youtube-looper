@@ -1,8 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
-import type { PlayerState, LoopState, Preset } from './types';
-import { clampSpeed, speedToYouTube, MIN_SPEED, MAX_SPEED, SPEED_STEP } from './youtube';
+import type { PlayerState, Preset } from './types';
+import { clampSpeed, speedToYouTube } from './youtube';
 
 // YouTube Player type (from IFrame API)
 interface YTPlayer {

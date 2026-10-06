@@ -86,7 +86,7 @@ function startServer() {
   });
 
   // List MIDI inputs
-  const inputs = listMidiInputs();
+  listMidiInputs();
 
   // Create WebSocket server
   const wss = new WebSocket.Server({ port: WS_PORT });
