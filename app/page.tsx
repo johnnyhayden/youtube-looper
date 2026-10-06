@@ -11,15 +11,18 @@ import SpeedControl from '@/components/SpeedControl';
 import PlaybackControls from '@/components/PlaybackControls';
 import PresetManager from '@/components/PresetManager';
 import KeyboardShortcuts, { KeyboardShortcutsHelp } from '@/components/KeyboardShortcuts';
-import VideoHistory from '@/components/VideoHistory';
 import UserMenu from '@/components/UserMenu';
 import SetlistMenu from '@/components/SetlistMenu';
-import SetlistView from '@/components/SetlistView';
+import SetlistTray from '@/components/SetlistTray';
+import RecentTray from '@/components/RecentTray';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { parseExportifyCsv } from '@/lib/setlist';
-import { ArrowLeft, Upload } from 'lucide-react';
-import type { Preset, Setlist, SetlistSummary } from '@/lib/types';
+import { ListMusic, PanelLeftClose, PanelLeftOpen, Upload } from 'lucide-react';
+import type { Preset, RecentVideo, Setlist, SetlistSummary } from '@/lib/types';
+
+// Same width as the controls sidebar on the right
+const TRAY_CLASSES = 'lg:w-80 shrink-0 max-h-80 lg:max-h-none lg:h-[calc(100vh-140px)]';
 
 function VideoLooper() {
   const {
@@ -40,6 +43,10 @@ function VideoLooper() {
   const [setlists, setSetlists] = useState<SetlistSummary[]>([]);
   const [activeSetlist, setActiveSetlist] = useState<Setlist | null>(null);
   const [setlistError, setSetlistError] = useState<string | null>(null);
+  const [trayOpen, setTrayOpen] = useState(true);
+  // The tray shows either the active setlist or the built-in "Recent" setlist
+  const [trayView, setTrayView] = useState<'setlist' | 'recent'>('setlist');
+  const [recent, setRecent] = useState<RecentVideo[]>([]);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
   const openSetlist = useCallback(async (id: string) => {
@@ -55,17 +62,28 @@ function VideoLooper() {
     }
   }, []);
 
-  // Load saved setlists and open the most recent one
+  const refreshRecent = useCallback(async () => {
+    try {
+      const data = await fetch('/api/videos/history').then((res) => res.json());
+      setRecent(data.history || []);
+    } catch (err) {
+      console.error('Error loading recent videos:', err);
+    }
+  }, []);
+
+  // Load saved setlists and open the most recent one (or Recent if there are none)
   useEffect(() => {
+    refreshRecent();
     fetch('/api/setlists')
       .then((res) => res.json())
       .then((data) => {
         const list: SetlistSummary[] = data.setlists || [];
         setSetlists(list);
         if (list.length > 0) openSetlist(list[0].id);
+        else setTrayView('recent');
       })
       .catch(console.error);
-  }, [openSetlist]);
+  }, [openSetlist, refreshRecent]);
 
   // Load presets when video changes
   useEffect(() => {
@@ -104,6 +122,8 @@ function VideoLooper() {
 
   const { isConnected: midiConnected } = useMidiBridge(midiHandlers);
 
+  const hasTray = trayView === 'recent' || activeSetlist !== null;
+
   const handleLoadVideo = () => {
     const videoId = extractVideoId(url);
     if (videoId) {
@@ -112,10 +132,10 @@ function VideoLooper() {
     }
   };
 
-  const handleSelectFromHistory = (videoId: string) => {
+  const handlePlayRecent = (videoId: string) => {
     setStartSeconds(0);
     setVideoId(videoId);
-    setUrl(''); // Clear the input when selecting from history
+    setUrl('');
   };
 
   const handleImportCsv = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,7 +165,8 @@ function VideoLooper() {
         ...prev,
       ]);
       setSetlistError(null);
-      setVideoId(null);
+      setTrayView('setlist');
+      setTrayOpen(true);
     } catch (err) {
       setSetlistError(err instanceof Error ? err.message : 'Could not import that CSV.');
     }
@@ -177,6 +198,7 @@ function VideoLooper() {
     if (!activeSetlist) return;
     const id = activeSetlist.id;
     setActiveSetlist(null);
+    setTrayView('recent');
     setSetlists((prev) => prev.filter((s) => s.id !== id));
     try {
       await fetch(`/api/setlists?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
@@ -191,8 +213,14 @@ function VideoLooper() {
     setUrl('');
   };
 
+  // id is a setlist ID, or "recent" for the built-in Recent setlist
   const handleOpenSetlist = (id: string) => {
-    setVideoId(null);
+    setTrayOpen(true);
+    if (id === 'recent') {
+      setTrayView('recent');
+      return;
+    }
+    setTrayView('setlist');
     openSetlist(id);
   };
 
@@ -212,6 +240,7 @@ function VideoLooper() {
           },
         }),
       });
+      refreshRecent();
     } catch (err) {
       console.error('Error saving video title:', err);
     }
@@ -301,16 +330,15 @@ function VideoLooper() {
 
           {/* Center: URL input */}
           <div className="flex-1 flex items-center justify-center gap-2 max-w-2xl mx-auto">
-            {state.videoId && activeSetlist && (
+            {hasTray && (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setVideoId(null)}
-                className="h-8 px-2 shrink-0"
-                title={`Back to ${activeSetlist.name}`}
+                onClick={() => setTrayOpen(!trayOpen)}
+                className="h-8 px-2 shrink-0 text-muted-foreground hover:text-foreground"
+                title={trayOpen ? 'Hide setlist' : 'Show setlist'}
               >
-                <ArrowLeft />
-                <span className="text-xs hidden md:inline">Setlist</span>
+                {trayOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
               </Button>
             )}
             <Input
@@ -324,13 +352,10 @@ function VideoLooper() {
             <Button onClick={handleLoadVideo} size="sm" className="h-8 px-4 shrink-0">
               Load
             </Button>
-            <VideoHistory 
-              onSelect={handleSelectFromHistory} 
-              currentVideoId={state.videoId} 
-            />
             <SetlistMenu
               setlists={setlists}
-              activeId={activeSetlist?.id ?? null}
+              activeId={trayView === 'recent' ? 'recent' : activeSetlist?.id ?? null}
+              recentCount={recent.length}
               onOpen={handleOpenSetlist}
               onImport={() => csvInputRef.current?.click()}
             />
@@ -359,7 +384,7 @@ function VideoLooper() {
         </div>
       </header>
 
-      <main className={state.videoId ? "px-4 py-4" : "max-w-7xl mx-auto px-4 py-6"}>
+      <main className={state.videoId || hasTray ? "px-4 py-4" : "max-w-7xl mx-auto px-4 py-6"}>
         {/* Keyboard shortcuts help */}
         {showHelp && (
           <div className="mb-4 p-4 bg-card rounded-lg border border-border max-w-3xl">
@@ -374,110 +399,146 @@ function VideoLooper() {
           </div>
         )}
 
-        {/* Main content */}
-        {state.videoId ? (
-          <div className="flex flex-col xl:flex-row gap-4 h-[calc(100vh-140px)]">
-            {/* Video player - takes maximum available space */}
-            <div className="flex-1 min-w-0 min-h-[300px] xl:min-h-0">
-              <YouTubePlayer 
-                videoId={state.videoId} 
-                startSeconds={startSeconds}
-                onTitleLoaded={handleVideoTitleLoaded}
-              />
-            </div>
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Setlist tray */}
+          {trayOpen && trayView === 'recent' && (
+            <RecentTray
+              videos={recent}
+              currentVideoId={state.videoId}
+              onPlay={handlePlayRecent}
+              onHide={() => setTrayOpen(false)}
+              className={TRAY_CLASSES}
+            />
+          )}
+          {trayOpen && trayView === 'setlist' && activeSetlist && (
+            <SetlistTray
+              key={activeSetlist.id}
+              setlist={activeSetlist}
+              currentVideoId={state.videoId}
+              onPlay={handlePlayFromSetlist}
+              onChooseVideo={handleChooseLessonVideo}
+              onDelete={handleDeleteSetlist}
+              onHide={() => setTrayOpen(false)}
+              className={TRAY_CLASSES}
+            />
+          )}
 
-            {/* All controls sidebar - fixed width on large screens */}
-            <div className="xl:w-80 shrink-0 flex flex-col gap-3 overflow-y-auto">
-              {/* Timeline */}
-              <div className="bg-card p-3 rounded-lg border border-border">
-                <h3 className="font-semibold mb-2 text-xs text-muted-foreground uppercase tracking-wide">
-                  Timeline
-                </h3>
-                <Timeline />
-              </div>
+          {/* Main content */}
+          <div className="flex-1 min-w-0">
+            {state.videoId ? (
+              <div className="flex flex-col xl:flex-row gap-4 h-[calc(100vh-140px)]">
+                {/* Video player - takes maximum available space */}
+                <div className="flex-1 min-w-0 min-h-[300px] xl:min-h-0">
+                  <YouTubePlayer 
+                    videoId={state.videoId} 
+                    startSeconds={startSeconds}
+                    onTitleLoaded={handleVideoTitleLoaded}
+                  />
+                </div>
 
-              {/* Playback controls */}
-              <div className="bg-card p-3 rounded-lg border border-border">
-                <h3 className="font-semibold mb-2 text-xs text-muted-foreground uppercase tracking-wide">
-                  Playback
-                </h3>
-                <PlaybackControls />
-              </div>
+                {/* All controls sidebar - fixed width on large screens */}
+                <div className="xl:w-80 shrink-0 flex flex-col gap-3 overflow-y-auto">
+                  {/* Timeline */}
+                  <div className="bg-card p-3 rounded-lg border border-border">
+                    <h3 className="font-semibold mb-2 text-xs text-muted-foreground uppercase tracking-wide">
+                      Timeline
+                    </h3>
+                    <Timeline />
+                  </div>
 
-              {/* Speed control */}
-              <div className="bg-card p-3 rounded-lg border border-border">
-                <h3 className="font-semibold mb-2 text-xs text-muted-foreground uppercase tracking-wide">
-                  Speed
-                </h3>
-                <SpeedControl />
-              </div>
+                  {/* Playback controls */}
+                  <div className="bg-card p-3 rounded-lg border border-border">
+                    <h3 className="font-semibold mb-2 text-xs text-muted-foreground uppercase tracking-wide">
+                      Playback
+                    </h3>
+                    <PlaybackControls />
+                  </div>
 
-              {/* Loop controls */}
-              <div className="bg-card p-3 rounded-lg border border-border">
-                <h3 className="font-semibold mb-2 text-xs text-muted-foreground uppercase tracking-wide">
-                  Loop
-                </h3>
-                <LoopControls />
-              </div>
+                  {/* Speed control */}
+                  <div className="bg-card p-3 rounded-lg border border-border">
+                    <h3 className="font-semibold mb-2 text-xs text-muted-foreground uppercase tracking-wide">
+                      Speed
+                    </h3>
+                    <SpeedControl />
+                  </div>
 
-              {/* Presets */}
-              <div className="bg-card p-3 rounded-lg border border-border flex-1 min-h-0 overflow-y-auto">
-                <h3 className="font-semibold mb-2 text-xs text-muted-foreground uppercase tracking-wide">
-                  Presets
-                </h3>
-                <PresetManager
-                  presets={presets}
-                  onSaveCurrentLoop={handleSaveCurrentLoop}
-                  onRename={handleRenamePreset}
-                  onDelete={handleDeletePreset}
-                />
+                  {/* Loop controls */}
+                  <div className="bg-card p-3 rounded-lg border border-border">
+                    <h3 className="font-semibold mb-2 text-xs text-muted-foreground uppercase tracking-wide">
+                      Loop
+                    </h3>
+                    <LoopControls />
+                  </div>
+
+                  {/* Presets */}
+                  <div className="bg-card p-3 rounded-lg border border-border flex-1 min-h-0 overflow-y-auto">
+                    <h3 className="font-semibold mb-2 text-xs text-muted-foreground uppercase tracking-wide">
+                      Presets
+                    </h3>
+                    <PresetManager
+                      presets={presets}
+                      onSaveCurrentLoop={handleSaveCurrentLoop}
+                      onRename={handleRenamePreset}
+                      onDelete={handleDeletePreset}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : trayView === 'setlist' && activeSetlist ? (
+              /* Setlist open, no song picked yet */
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-20 h-20 mb-5 rounded-full bg-secondary flex items-center justify-center">
+                  <ListMusic className="size-8 text-primary" />
+                </div>
+                <h2 className="text-xl font-bold mb-2">{activeSetlist.name}</h2>
+                <p className="text-muted-foreground max-w-md mb-5">
+                  Pick a song from the setlist to start practicing its solo lesson.
+                </p>
+                {!trayOpen && (
+                  <Button variant="secondary" onClick={() => setTrayOpen(true)}>
+                    <PanelLeftOpen />
+                    Show setlist
+                  </Button>
+                )}
+              </div>
+            ) : (
+              /* Empty state */
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-24 h-24 mb-6 rounded-full bg-secondary flex items-center justify-center">
+                  <span className="text-4xl">🎸</span>
+                </div>
+                <h2 className="text-2xl font-bold mb-2">Ready to Practice</h2>
+                <p className="text-muted-foreground max-w-md mb-6">
+                  Paste a YouTube URL above to get started. You can loop sections,
+                  adjust playback speed, and save presets for your favorite practice
+                  spots.
+                </p>
+                <Button variant="secondary" onClick={() => csvInputRef.current?.click()} className="mb-8">
+                  <Upload />
+                  Upload CSV setlist
+                </Button>
+                <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <span className="text-primary">⟳</span>
+                    <span>Loop any section</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-primary">⚡</span>
+                    <span>40% - 110% speed</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-primary">⌨️</span>
+                    <span>Keyboard shortcuts</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-primary">🎹</span>
+                    <span>MIDI control</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        ) : activeSetlist ? (
-          <SetlistView
-            key={activeSetlist.id}
-            setlist={activeSetlist}
-            onPlay={handlePlayFromSetlist}
-            onChooseVideo={handleChooseLessonVideo}
-            onDelete={handleDeleteSetlist}
-          />
-        ) : (
-          /* Empty state */
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-24 h-24 mb-6 rounded-full bg-secondary flex items-center justify-center">
-              <span className="text-4xl">🎸</span>
-            </div>
-            <h2 className="text-2xl font-bold mb-2">Ready to Practice</h2>
-            <p className="text-muted-foreground max-w-md mb-6">
-              Paste a YouTube URL above to get started. You can loop sections,
-              adjust playback speed, and save presets for your favorite practice
-              spots.
-            </p>
-            <Button variant="secondary" onClick={() => csvInputRef.current?.click()} className="mb-8">
-              <Upload />
-              Upload CSV setlist
-            </Button>
-            <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <span className="text-primary">⟳</span>
-                <span>Loop any section</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-primary">⚡</span>
-                <span>40% - 110% speed</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-primary">⌨️</span>
-                <span>Keyboard shortcuts</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-primary">🎹</span>
-                <span>MIDI control</span>
-              </div>
-            </div>
-          </div>
-        )}
+        </div>
       </main>
 
       {/* Footer */}

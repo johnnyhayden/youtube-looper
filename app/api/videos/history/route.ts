@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getUserId } from '@/auth';
 import { loadVideos } from '@/lib/storage';
+import type { RecentVideo } from '@/lib/types';
 
-export interface VideoHistoryItem {
-  videoId: string;
-  title: string;
-  lastUsed: string;
-}
+const RECENT_LIMIT = 50;
 
 // GET /api/videos/history - Get recent videos sorted by last used
 export async function GET() {
@@ -19,7 +16,7 @@ export async function GET() {
     const store = await loadVideos(userId);
     
     // Convert to array and sort by lastUsed (most recent first)
-    const history: VideoHistoryItem[] = Object.entries(store.videos)
+    const history: RecentVideo[] = Object.entries(store.videos)
       .map(([videoId, data]) => ({
         videoId,
         title: data.title || `Video ${videoId}`,
@@ -27,7 +24,7 @@ export async function GET() {
       }))
       .filter(item => item.title && item.title !== `Video ${item.videoId}`) // Only include videos with real titles
       .sort((a, b) => new Date(b.lastUsed).getTime() - new Date(a.lastUsed).getTime())
-      .slice(0, 10); // Keep only 10 most recent
+      .slice(0, RECENT_LIMIT);
     
     return NextResponse.json({ history });
   } catch (error) {

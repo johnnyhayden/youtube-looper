@@ -14,12 +14,13 @@ import type { SetlistSummary } from '@/lib/types';
 
 interface SetlistMenuProps {
   setlists: SetlistSummary[];
-  activeId: string | null;
+  activeId: string | null; // A setlist ID, or "recent"
+  recentCount: number;
   onOpen: (id: string) => void;
   onImport: () => void;
 }
 
-export default function SetlistMenu({ setlists, activeId, onOpen, onImport }: SetlistMenuProps) {
+export default function SetlistMenu({ setlists, activeId, recentCount, onOpen, onImport }: SetlistMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -34,21 +35,22 @@ export default function SetlistMenu({ setlists, activeId, onOpen, onImport }: Se
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72">
-        {setlists.length > 0 && (
-          <>
-            <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wide">
-              Setlists
-            </DropdownMenuLabel>
-            {setlists.map((s) => (
-              <DropdownMenuItem key={s.id} onSelect={() => onOpen(s.id)}>
-                <Check className={s.id === activeId ? '' : 'invisible'} />
-                <span className="flex-1 truncate">{s.name}</span>
-                <span className="text-xs text-muted-foreground">{s.songCount}</span>
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-          </>
-        )}
+        <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wide">
+          Setlists
+        </DropdownMenuLabel>
+        <DropdownMenuItem onSelect={() => onOpen('recent')}>
+          <Check className={activeId === 'recent' ? '' : 'invisible'} />
+          <span className="flex-1 truncate">Recent</span>
+          <span className="text-xs text-muted-foreground">{recentCount}</span>
+        </DropdownMenuItem>
+        {setlists.map((s) => (
+          <DropdownMenuItem key={s.id} onSelect={() => onOpen(s.id)}>
+            <Check className={s.id === activeId ? '' : 'invisible'} />
+            <span className="flex-1 truncate">{s.name}</span>
+            <span className="text-xs text-muted-foreground">{s.songCount}</span>
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onImport}>
           <Upload />
           Upload CSV setlist…

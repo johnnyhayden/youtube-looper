@@ -17,6 +17,12 @@ export interface VideosStore {
   videos: Record<string, VideoData>;
 }
 
+export interface RecentVideo {
+  videoId: string;
+  title: string;
+  lastUsed: string;
+}
+
 export interface LoopState {
   start: number | null;
   end: number | null;
